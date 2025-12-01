@@ -133,15 +133,21 @@ Thumbs.db
 *.tar.gz
 *.tgz
 
-# Model checkpoints and training outputs
+# Project-specific cache and outputs
+/cache/
 /checkpoints/
+/results/
 /logs/
 /runs/
+
+# Model files
 *.ckpt
 *.pth
 *.pt
 *.h5
 *.model
+*.pkl
+*.pickle
 
 # TensorBoard
 events.out.tfevents.*
@@ -151,4 +157,22 @@ wandb/
 
 # TorchScript and cached files
 *.ptc
+
+# Kaggle credentials
+kaggle.json
+
+# Jupyter Notebook outputs (keep notebooks, ignore outputs)
+*.ipynb_checkpoints/
+
+# Generated figures and visualizations
+*.png
+*.jpg
+*.jpeg
+*.pdf
+!docs/**/*.png
+!docs/**/*.jpg
+
+# Training logs and metadata
+training_history.json
+final_results.json
 
