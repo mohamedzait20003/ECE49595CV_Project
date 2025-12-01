@@ -32,7 +32,8 @@ class Cars196Dataset(Dataset):
         transform: Optional[transforms.Compose] = None,
         download: bool = True,
         auto_download_kaggle: bool = True,
-        cache_dir: Optional[str] = None
+        cache_dir: Optional[str] = None,
+        label_mappings: Optional[Dict] = None
     ):
         """
         Args:
@@ -46,6 +47,8 @@ class Cars196Dataset(Dataset):
                                  using kagglehub
             cache_dir: Directory to cache downloaded dataset. If None,
                       uses default kagglehub cache location.
+            label_mappings: Pre-built label mappings to share between
+                           train/test splits. If None, builds new mappings.
         """
         self.split = split
         self.transform = transform
@@ -73,8 +76,13 @@ class Cars196Dataset(Dataset):
         # Load annotations and setup paths
         self._load_annotations()
 
-        # Build label mappings
-        self._build_label_mappings()
+        # Build or use provided label mappings
+        if label_mappings is not None:
+            # Use shared label mappings
+            self._use_label_mappings(label_mappings)
+        else:
+            # Build new label mappings
+            self._build_label_mappings()
 
     def _load_annotations(self):
         """Load and parse annotations from the dataset."""
@@ -226,6 +234,48 @@ class Cars196Dataset(Dataset):
         print(f"Loaded {len(self.annotations)} annotations "
               f"for {self.split} split")
         print(f"Number of classes: {len(self.class_names)}")
+
+    def _use_label_mappings(self, label_mappings: Dict):
+        """Use pre-built label mappings (for test split consistency)."""
+        self.unique_brands = label_mappings['unique_brands']
+        self.unique_models = label_mappings['unique_models']
+        self.unique_years = label_mappings['unique_years']
+        self.brand_to_idx = label_mappings['brand_to_idx']
+        self.model_to_idx = label_mappings['model_to_idx']
+        self.year_to_idx = label_mappings['year_to_idx']
+        
+        # Parse class names for this split
+        self.brands = []
+        self.models = []
+        self.years = []
+        for class_name in self.class_names:
+            brand, model, year = self._parse_class_name(class_name)
+            self.brands.append(brand)
+            self.models.append(model)
+            self.years.append(year)
+        
+        # Verify all labels exist in mappings (critical for test set!)
+        missing_brands = set(self.brands) - set(self.unique_brands)
+        missing_models = set(self.models) - set(self.unique_models)
+        missing_years = set(self.years) - set(self.unique_years)
+        
+        if missing_brands:
+            print(f"WARNING: Test has brands not in train: "
+                  f"{missing_brands}")
+        if missing_models:
+            print(f"WARNING: Test has models not in train: "
+                  f"{missing_models}")
+        if missing_years:
+            print(f"WARNING: Test set has years not in train: "
+                  f"{missing_years}")
+        
+        print(f"✓ Using shared label mappings: "
+              f"{len(self.unique_brands)} brands, "
+              f"{len(self.unique_models)} models, "
+              f"{len(self.unique_years)} years")
+        print(f"✓ Test split has {len(set(self.brands))} unique brands, "
+              f"{len(set(self.models))} unique models, "
+              f"{len(set(self.years))} unique years")
 
     def _build_label_mappings(self):
         """Build mappings for brand, model, and year from class names."""
@@ -392,12 +442,23 @@ class Cars196Dataset(Dataset):
         return image, labels
 
     def get_num_classes(self) -> Dict[str, int]:
-        """Get number of classes for each label type."""
+        """Get the number of classes for each label type."""
         return {
             'brand': len(self.unique_brands),
             'model': len(self.unique_models),
             'year': len(self.unique_years),
             'total': len(self.class_names)
+        }
+
+    def get_label_mappings(self) -> Dict:
+        """Get label mappings to share with other splits."""
+        return {
+            'unique_brands': self.unique_brands,
+            'unique_models': self.unique_models,
+            'unique_years': self.unique_years,
+            'brand_to_idx': self.brand_to_idx,
+            'model_to_idx': self.model_to_idx,
+            'year_to_idx': self.year_to_idx
         }
 
 
@@ -479,11 +540,16 @@ def create_dataloaders(
     if root_dir is None and auto_download:
         root_dir = train_dataset.root_dir
 
+    # Get label mappings from train dataset to ensure consistency
+    label_mappings = train_dataset.get_label_mappings()
+    print("\n✓ Sharing label mappings from train to test split...")
+
     test_dataset = Cars196Dataset(
         root_dir=root_dir,
         split='test',
         transform=test_transform,
-        auto_download_kaggle=False  # Already downloaded
+        auto_download_kaggle=False,  # Already downloaded
+        label_mappings=label_mappings  # Use same mappings as train!
     )
 
     train_loader = DataLoader(
