@@ -180,7 +180,7 @@ class Cars196Dataset(Dataset):
                 else:
                     # Try other possible field names
                     img_path = str(anno[0][0])
-                
+
                 # Get class ID - try different field names
                 if 'class' in anno.dtype.names:
                     class_id = int(anno['class'][0][0]) - 1
@@ -189,7 +189,7 @@ class Cars196Dataset(Dataset):
                 else:
                     # Default to 0 if not found
                     class_id = 0
-                
+
                 # Get bounding box if available
                 bbox = None
                 if 'bbox_x1' in anno.dtype.names:
@@ -243,7 +243,7 @@ class Cars196Dataset(Dataset):
         self.brand_to_idx = label_mappings['brand_to_idx']
         self.model_to_idx = label_mappings['model_to_idx']
         self.year_to_idx = label_mappings['year_to_idx']
-        
+
         # Parse class names for this split
         self.brands = []
         self.models = []
@@ -253,12 +253,12 @@ class Cars196Dataset(Dataset):
             self.brands.append(brand)
             self.models.append(model)
             self.years.append(year)
-        
+
         # Verify all labels exist in mappings (critical for test set!)
         missing_brands = set(self.brands) - set(self.unique_brands)
         missing_models = set(self.models) - set(self.unique_models)
         missing_years = set(self.years) - set(self.unique_years)
-        
+
         if missing_brands:
             print(f"WARNING: Test has brands not in train: "
                   f"{missing_brands}")
@@ -268,7 +268,7 @@ class Cars196Dataset(Dataset):
         if missing_years:
             print(f"WARNING: Test set has years not in train: "
                   f"{missing_years}")
-        
+
         print(f"✓ Using shared label mappings: "
               f"{len(self.unique_brands)} brands, "
               f"{len(self.unique_models)} models, "
@@ -468,11 +468,9 @@ def get_default_transforms(
 ) -> transforms.Compose:
     """
     Get default image transforms for Cars196 dataset.
-
     Args:
         img_size: Target image size
         is_training: Whether this is for training (includes augmentation)
- 
     Returns:
         torchvision transforms
     """
